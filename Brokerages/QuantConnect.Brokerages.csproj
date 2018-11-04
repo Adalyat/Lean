@@ -289,6 +289,8 @@
     <Compile Include="Bitfinex\BitfinexSymbolMapper.cs" />
     <Compile Include="IOrderBookUpdater.cs" />
     <Compile Include="DefaultOrderBook.cs" />
+    <Compile Include="Bitmex\BitmexBrokerage.cs" />
+    <Compile Include="Bitmex\BitmexBrokerageFactory.cs" />
     <Compile Include="Brokerage.cs" />
     <Compile Include="BrokerageException.cs" />
     <Compile Include="BrokerageFactory.cs" />

@@ -64,6 +64,11 @@ namespace QuantConnect.Brokerages
         /// <summary>
         /// Transaction and submit/execution rules will use alpaca models
         /// </summary>
-        Alpaca
+        Alpaca,
+
+        /// <summary>
+        /// Transaction and submit/execution rules will use bitmex models
+        /// </summary>
+        Bitmex
     }
 }
