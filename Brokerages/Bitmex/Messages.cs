@@ -14,6 +14,7 @@
 */
 
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -77,6 +78,65 @@ namespace QuantConnect.Brokerages.Bitmex
             public string Side { get; set; }
             public DateTime Timestamp { get; set; }
             public string Error { get; set; }
+        }
+
+        public enum EventType
+        {
+            None,
+            Subscribe,
+            Unsubscribe
+        }
+
+        public class BaseMessage
+        {
+            public virtual EventType Type { get; } = EventType.None;
+
+            protected JObject JObject { get; set; }
+
+            public BaseMessage(string content)
+            {
+                JObject = JObject.Parse(content);
+            }
+
+            public static BaseMessage Parse(string content)
+            {
+                var jobject = JObject.Parse(content);
+                JToken t;
+                if (jobject.TryGetValue("subscribe", out t))
+                {
+                    return new Subscribe(content);
+                }
+                if (jobject.TryGetValue("unsubscribe", out t))
+                {
+                    return new Unsubscribe(content);
+                }
+                return null;
+            }
+
+            public T ToObject<T>() where T : BaseMessage
+            {
+                return (T)Convert.ChangeType(this, typeof(T));
+            }
+        }
+
+        public class Subscribe : BaseMessage
+        {
+            public override EventType Type => EventType.Subscribe;
+            public string Channel => JObject.Value<string>("subscribe");
+            public bool Success => JObject.Value<bool>("success");
+
+            public Subscribe(string content) : base(content)
+            { }
+        }
+
+        public class Unsubscribe : BaseMessage
+        {
+            public override EventType Type => EventType.Unsubscribe;
+            public string Channel => JObject.Value<string>("subscribe");
+            public bool Success => JObject.Value<bool>("success");
+
+            public Unsubscribe(string content) : base(content)
+            { }
         }
 #pragma warning restore 1591
     }

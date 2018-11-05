@@ -42,12 +42,19 @@ namespace QuantConnect.Brokerages.Bitmex
             _priceProvider = priceProvider;
         }
 
-        public override bool IsConnected
+        /// <summary>
+        /// Checks if the websocket connection is connected or in the process of connecting
+        /// </summary>
+        public override bool IsConnected => WebSocket.IsOpen;
+
+        /// <summary>
+        /// Closes the websockets connection
+        /// </summary>
+        public override void Disconnect()
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
+            base.Disconnect();
+
+            WebSocket.Close();
         }
 
         /// <summary>
@@ -100,11 +107,6 @@ namespace QuantConnect.Brokerages.Bitmex
             }
 
             return list;
-        }
-
-        public IEnumerable<BaseData> GetNextTicks()
-        {
-            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -179,6 +181,8 @@ namespace QuantConnect.Brokerages.Bitmex
         /// <returns>True if the request for a new order has been placed, false otherwise</returns>
         public override bool PlaceOrder(Order order)
         {
+            LockStream();
+
             IDictionary<string, object> body = new Dictionary<string, object>()
             {
                 { "symbol", _symbolMapper.GetBrokerageSymbol(order.Symbol) },
@@ -238,6 +242,7 @@ namespace QuantConnect.Brokerages.Bitmex
                     OnOrderEvent(new OrderEvent(order, DateTime.UtcNow, OrderFee.Zero, "Bitmex Order Event") { Status = OrderStatus.Invalid, Message = errorMessage });
                     OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, (int)response.StatusCode, errorMessage));
 
+                    UnlockStream();
                     return true;
                 }
 
@@ -265,6 +270,7 @@ namespace QuantConnect.Brokerages.Bitmex
                 OnOrderEvent(evnt);
                 Log.Trace($"Order submitted successfully - OrderId: {order.Id}");
 
+                UnlockStream();
                 return true;
             }
 
@@ -272,6 +278,7 @@ namespace QuantConnect.Brokerages.Bitmex
             OnOrderEvent(new OrderEvent(order, DateTime.UtcNow, OrderFee.Zero, "Bitmex Order Event") { Status = OrderStatus.Invalid });
             OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, -1, message));
 
+            UnlockStream();
             return true;
         }
 
@@ -291,6 +298,7 @@ namespace QuantConnect.Brokerages.Bitmex
                 throw new NotSupportedException("BitmexBrokerage.UpdateOrder: Multiple orders update not supported. Please cancel and re-create.");
             }
 
+            LockStream();
             IDictionary<string, object> body = new Dictionary<string, object>()
             {
                 { "orderID", order.BrokerId.First() },
@@ -310,6 +318,7 @@ namespace QuantConnect.Brokerages.Bitmex
                     body["stopPx"] = (order as StopMarketOrder).StopPrice.ToString(CultureInfo.InvariantCulture);
                     break;
                 default:
+                    UnlockStream();
                     throw new NotSupportedException($"BitmexBrokerage.ConvertOrderType: Unsupported order type: {order.Type}");
             }
 
@@ -326,6 +335,7 @@ namespace QuantConnect.Brokerages.Bitmex
             if (response.StatusCode == HttpStatusCode.OK)
             {
                 Log.Trace($"Order updatesd successfully - OrderId: {order.Id}");
+                UnlockStream();
                 return true;
             }
 
@@ -333,6 +343,7 @@ namespace QuantConnect.Brokerages.Bitmex
             OnOrderEvent(new OrderEvent(order, DateTime.UtcNow, OrderFee.Zero, "Bitmex Order Event") { Status = OrderStatus.Invalid });
             OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, -1, message));
 
+            UnlockStream();
             return true;
         }
 
@@ -343,6 +354,7 @@ namespace QuantConnect.Brokerages.Bitmex
         /// <returns>True if the request was submitted for cancellation, false otherwise</returns>
         public override bool CancelOrder(Order order)
         {
+            LockStream();
             var success = new List<bool>();
             IDictionary<string, object> body = new Dictionary<string, object>();
             foreach (var id in order.BrokerId)
@@ -376,27 +388,113 @@ namespace QuantConnect.Brokerages.Bitmex
                 cancellationSubmitted = true;
             }
 
+            UnlockStream();
             return cancellationSubmitted;
         }
 
-        public override void OnMessage(object sender, WebSocketMessage e)
+        /// <summary>
+        /// Get the next ticks from the live trading data queue
+        /// </summary>
+        /// <returns>IEnumerable list of ticks since the last update.</returns>
+        public IEnumerable<BaseData> GetNextTicks()
         {
-            throw new NotImplementedException();
+            lock (TickLocker)
+            {
+                var copy = Ticks.ToArray();
+                Ticks.Clear();
+                return copy;
+            }
         }
 
+        /// <summary>
+        /// Subscribes to the requested symbols (using an individual streaming channel)
+        /// </summary>
+        /// <param name="symbols">The list of symbols to subscribe</param>
         public override void Subscribe(IEnumerable<Symbol> symbols)
         {
-            throw new NotImplementedException();
+            List<string> pending = new List<string>();
+            foreach (var symbol in symbols)
+            {
+                if (symbol.Value.Contains("UNIVERSE") ||
+                    !_symbolMapper.IsKnownBrokerageSymbol(symbol.Value) ||
+                    symbol.SecurityType != _symbolMapper.GetLeanSecurityType(symbol.Value))
+                {
+                    continue;
+                }
+
+                if (!ChannelList.ContainsKey(symbol.Value))
+                {
+                    pending.Add(_symbolMapper.GetBrokerageSymbol(symbol));
+                }
+            }
+
+            if (pending.Any())
+            {
+                WebSocket.Send(JsonConvert.SerializeObject(new
+                {
+                    op = "subscribe",
+                    args = pending.Select(ch => $"orderBookL2:{ch}")
+                }));
+            }
+
+            Log.Trace("BitmexBrokerage.Subscribe: Sent subscribe.");
         }
 
+        /// <summary>
+        /// Adds the specified symbols to the subscription
+        /// </summary>
+        /// <param name="job">Job we're subscribing for:</param>
+        /// <param name="symbols">The symbols to be added keyed by SecurityType</param>
         public void Subscribe(LiveNodePacket job, IEnumerable<Symbol> symbols)
         {
-            throw new NotImplementedException();
+            Subscribe(symbols);
         }
 
+        /// <summary>
+        /// Ends current subscriptions
+        /// </summary>
+        public void Unsubscribe(IEnumerable<Symbol> symbols)
+        {
+            if (WebSocket.IsOpen)
+            {
+                var subscribed = symbols.Where(s => ChannelList.Keys.Contains(s.Value.ToString()));
+
+                if (subscribed.Any())
+                {
+                    WebSocket.Send(JsonConvert.SerializeObject(new
+                    {
+                        op = "unsubscribe",
+                        args = subscribed.Select(ch => new { orderBookL2 = ch.Value })
+                    }));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Ends current subscription for the specified symbols 
+        /// </summary>
+        /// <param name="job">Job we're subscribing for:</param>
+        /// <param name="symbols">The symbols to be added keyed by SecurityType</param>
         public void Unsubscribe(LiveNodePacket job, IEnumerable<Symbol> symbols)
         {
-            throw new NotImplementedException();
+            Unsubscribe(symbols);
+        }
+
+        /// <summary>
+        /// Gets a list of current subscriptions
+        /// </summary>
+        /// <returns></returns>
+        protected override IList<Symbol> GetSubscribed()
+        {
+            IList<Symbol> list = new List<Symbol>();
+            lock (ChannelList)
+            {
+                foreach (var ticker in ChannelList.Select(x => x.Value.Symbol).Distinct())
+                {
+                    list.Add(_symbolMapper.GetLeanSymbol(ticker));
+                }
+            }
+            return list;
         }
 
         /// <summary>
