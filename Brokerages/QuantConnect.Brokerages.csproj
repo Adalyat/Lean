@@ -290,7 +290,9 @@
     <Compile Include="IOrderBookUpdater.cs" />
     <Compile Include="DefaultOrderBook.cs" />
     <Compile Include="Bitmex\BitmexBrokerage.cs" />
+    <Compile Include="Bitmex\BitmexBrokerage.Utility.cs" />
     <Compile Include="Bitmex\BitmexBrokerageFactory.cs" />
+    <Compile Include="Bitmex\Messages.cs" />
     <Compile Include="Brokerage.cs" />
     <Compile Include="BrokerageException.cs" />
     <Compile Include="BrokerageFactory.cs" />
