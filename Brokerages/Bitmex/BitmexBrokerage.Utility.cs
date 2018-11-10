@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using QuantConnect.Logging;
 using RestSharp;
 using System;
 using System.Collections.Generic;
@@ -124,6 +125,36 @@ namespace QuantConnect.Brokerages.Bitmex
                 OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Error, 0, $"GetConversionRate: {e.Message}"));
                 return 0;
             }
+        }
+
+        /// <summary>
+        /// Converts an Bitmex position into a LEAN holding.
+        /// </summary>
+        private Holding ConvertHolding(Messages.Position position)
+        {
+            var holding = new Holding
+            {
+                Symbol = _symbolMapper.GetLeanSymbol(position.Symbol),
+                Type = SecurityType.Crypto,
+                Quantity = position.Quantity,
+                AveragePrice = position.AveragePrice,
+                ConversionRate = 1.0m,
+                CurrencySymbol = "$",
+                UnrealizedPnL = position.UnrealisedPnl
+            };
+
+            try
+            {
+                var tick = GetTicker(holding.Symbol);
+                holding.MarketPrice = tick.Price;
+            }
+            catch (Exception)
+            {
+                Log.Error($"BitmexBrokerage.ConvertHolding(): failed to set {holding.Symbol} market price");
+                throw;
+            }
+
+            return holding;
         }
     }
 }

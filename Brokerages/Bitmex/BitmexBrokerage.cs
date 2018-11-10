@@ -9,6 +9,7 @@ using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Linq;
 
 namespace QuantConnect.Brokerages.Bitmex
 {
@@ -49,9 +50,28 @@ namespace QuantConnect.Brokerages.Bitmex
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Gets all open positions
+        /// </summary>
+        /// <returns></returns>
         public override List<Holding> GetAccountHoldings()
         {
-            throw new NotImplementedException();
+            var endpoint = GetEndpoint($"/position?filter={WebUtility.UrlEncode("{\"isOpen\":true}")}");
+            var request = new RestRequest(endpoint, Method.GET);
+
+            SignRequest(request, null);
+
+            var response = ExecuteRestRequest(request);
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new Exception($"BitmexBrokerage.GetAccountHoldings: request failed: [{(int)response.StatusCode}] {response.StatusDescription}, Content: {response.Content}, ErrorMessage: {response.ErrorMessage}");
+            }
+
+            var positions = JsonConvert.DeserializeObject<Messages.Position[]>(response.Content);
+            return positions
+                .Where(p => p.Quantity != 0)
+                .Select(ConvertHolding)
+                .ToList();
         }
 
         /// <summary>

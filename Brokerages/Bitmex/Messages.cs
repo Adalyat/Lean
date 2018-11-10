@@ -47,6 +47,18 @@ namespace QuantConnect.Brokerages.Bitmex
             [JsonProperty(PropertyName = "midPrice")]
             public decimal Price { get; set; }
         }
+
+        public class Position
+        {
+            public string Symbol { get; set; }
+            [JsonProperty("avgEntryPrice")]
+            public decimal AveragePrice { get; set; }
+            [JsonProperty("currentQty")]
+            public decimal Quantity { get; set; }
+            [JsonProperty(PropertyName = "unrealisedPnl")]
+            public decimal UnrealisedPnlInSatoshi { get; set; }
+            public decimal UnrealisedPnl => UnrealisedPnlInSatoshi * Satoshi;
+        }
 #pragma warning restore 1591
     }
 }
