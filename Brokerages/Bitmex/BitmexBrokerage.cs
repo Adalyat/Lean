@@ -18,6 +18,8 @@ namespace QuantConnect.Brokerages.Bitmex
         private readonly ISecurityProvider _securityProvider;
         private readonly RateGate _restRateLimiter = new RateGate(150, TimeSpan.FromMinutes(5));
         private readonly IPriceProvider _priceProvider;
+        private readonly BitmexSymbolMapper _symbolMapper = new BitmexSymbolMapper();
+
         /// <summary>
         /// Constructor for brokerage
         /// </summary>

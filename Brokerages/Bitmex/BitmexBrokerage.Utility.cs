@@ -102,7 +102,7 @@ namespace QuantConnect.Brokerages.Bitmex
         /// <returns></returns>
         public Messages.PriceTicker GetTicker(Symbol symbol)
         {
-            string endpoint = GetEndpoint($"/instrument?symbol={symbol.ToUpper()}&count=100&reverse=false");
+            string endpoint = GetEndpoint($"/instrument?symbol={symbol.Value}&count=100&reverse=false");
             var req = new RestRequest(endpoint, Method.GET);
             var response = ExecuteRestRequest(req);
             if (response.StatusCode != HttpStatusCode.OK)
