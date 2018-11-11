@@ -107,9 +107,69 @@ namespace QuantConnect.Brokerages.Bitmex
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Gets all orders not yet closed
+        /// </summary>
+        /// <returns></returns>
         public override List<Order> GetOpenOrders()
         {
-            throw new NotImplementedException();
+            var list = new List<Order>();
+            var endpoint = GetEndpoint($"/order?filter={WebUtility.UrlEncode("{\"open\":true}")}");
+            var request = new RestRequest(endpoint, Method.GET);
+
+            SignRequest(request, null);
+            var response = ExecuteRestRequest(request);
+
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new Exception($"BitmexBrokerage.GetOpenOrders: request failed: [{(int)response.StatusCode}] {response.StatusDescription}, Content: {response.Content}, ErrorMessage: {response.ErrorMessage}");
+            }
+
+            var orders = JsonConvert.DeserializeObject<Messages.Order[]>(response.Content);
+            foreach (var item in orders)
+            {
+                Order order;
+                switch (item.Type.ToUpper())
+                {
+                    case "MARKET":
+                        order = new MarketOrder { Price = item.Price.Value };
+                        break;
+                    case "LIMIT":
+                        order = new LimitOrder { LimitPrice = item.Price.Value };
+                        break;
+                    case "STOP":
+                        order = new StopMarketOrder { StopPrice = item.StopPrice.Value };
+                        break;
+                    case "STOPLIMIT":
+                        order = new StopLimitOrder { StopPrice = item.StopPrice.Value, LimitPrice = item.Price.Value };
+                        break;
+                    default:
+                        OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Error, (int)response.StatusCode,
+                            "BitmexBrokerage.GetOpenOrders: Unsupported order type returned from brokerage: " + item.Type));
+                        continue;
+                }
+
+                order.Quantity = item.Side == "sell" ? -item.Quantity : item.Quantity;
+                order.BrokerId = new List<string> { item.Id.ToString() };
+                order.Symbol = _symbolMapper.GetLeanSymbol(item.Symbol);
+                order.Time = item.Timestamp;
+                order.Status = ConvertOrderStatus(item);
+                list.Add(order);
+            }
+
+            foreach (var item in list)
+            {
+                if (item.Status.IsOpen())
+                {
+                    var cached = CachedOrderIDs.Where(c => c.Value.BrokerId.Contains(item.BrokerId.First()));
+                    if (cached.Any())
+                    {
+                        CachedOrderIDs[cached.First().Key] = item;
+                    }
+                }
+            }
+
+            return list;
         }
 
         public override void OnMessage(object sender, WebSocketMessage e)

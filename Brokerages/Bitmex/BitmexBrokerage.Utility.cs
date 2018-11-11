@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using QuantConnect.Logging;
+using QuantConnect.Orders;
 using RestSharp;
 using System;
 using System.Collections.Generic;
@@ -142,7 +143,7 @@ namespace QuantConnect.Brokerages.Bitmex
                 CurrencySymbol = "$",
                 UnrealizedPnL = position.UnrealisedPnl
             };
-
+            
             try
             {
                 var tick = GetTicker(holding.Symbol);
@@ -155,6 +156,24 @@ namespace QuantConnect.Brokerages.Bitmex
             }
 
             return holding;
+        }
+
+        private static readonly Dictionary<string, OrderStatus> _statusMapper = new Dictionary<string, OrderStatus>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "New", OrderStatus.Submitted},
+            { "PartiallyFilled", OrderStatus.PartiallyFilled},
+            { "Filled", OrderStatus.Filled},
+            { "Canceled", OrderStatus.Canceled}
+        };
+
+        private static OrderStatus ConvertOrderStatus(Messages.Order item)
+        {
+            if (_statusMapper.ContainsKey(item.Status))
+            {
+                return _statusMapper[item.Status];
+            }
+
+            return Orders.OrderStatus.None;
         }
     }
 }

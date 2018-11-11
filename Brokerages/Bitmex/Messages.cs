@@ -59,6 +59,24 @@ namespace QuantConnect.Brokerages.Bitmex
             public decimal UnrealisedPnlInSatoshi { get; set; }
             public decimal UnrealisedPnl => UnrealisedPnlInSatoshi * Satoshi;
         }
+
+        public class Order
+        {
+            [JsonProperty(PropertyName = "orderID")]
+            public Guid Id { get; set; }
+            public string Symbol { get; set; }
+            [JsonProperty(PropertyName = "ordType")]
+            public string Type { get; set; }
+            [JsonProperty(PropertyName = "ordStatus")]
+            public string Status { get; set; }
+            public decimal? Price { get; set; }
+            [JsonProperty(PropertyName = "stopPx")]
+            public decimal? StopPrice { get; internal set; }
+            [JsonProperty(PropertyName = "orderQty")]
+            public decimal Quantity { get; set; }
+            public string Side { get; set; }
+            public DateTime Timestamp { get; set; }
+        }
 #pragma warning restore 1591
     }
 }
