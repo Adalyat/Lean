@@ -275,9 +275,65 @@ namespace QuantConnect.Brokerages.Bitmex
             return true;
         }
 
+        /// <summary>
+        /// Updates the order with the same id
+        /// </summary>
+        /// <param name="order">The new order information</param>
+        /// <returns>True if the request was made for the order to be updated, false otherwise</returns>
         public override bool UpdateOrder(Order order)
         {
-            throw new NotImplementedException();
+            if (order.BrokerId.Count == 0)
+            {
+                throw new ArgumentNullException("BitmexBrokerage.UpdateOrder: There is no brokerage id to be updated for this order.");
+            }
+            if (order.BrokerId.Count > 1)
+            {
+                throw new NotSupportedException("BitmexBrokerage.UpdateOrder: Multiple orders update not supported. Please cancel and re-create.");
+            }
+
+            IDictionary<string, object> body = new Dictionary<string, object>()
+            {
+                { "orderID", order.BrokerId.First() },
+                { "leavesQty", order.Quantity }
+            };
+
+            switch (order.Type)
+            {
+                case OrderType.Limit:
+                    body["price"] = (order as LimitOrder).LimitPrice.ToString(CultureInfo.InvariantCulture);
+                    break;
+                case OrderType.StopLimit:
+                    body["price"] = (order as StopLimitOrder).LimitPrice.ToString(CultureInfo.InvariantCulture);
+                    body["stopPx"] = (order as StopLimitOrder).StopPrice.ToString(CultureInfo.InvariantCulture);
+                    break;
+                case OrderType.StopMarket:
+                    body["stopPx"] = (order as StopMarketOrder).StopPrice.ToString(CultureInfo.InvariantCulture);
+                    break;
+                default:
+                    throw new NotSupportedException($"BitmexBrokerage.ConvertOrderType: Unsupported order type: {order.Type}");
+            }
+
+            var endpoint = GetEndpoint("/order");
+            var request = new RestRequest(endpoint, Method.PUT);
+            request.AddParameter(
+                "application/x-www-form-urlencoded",
+                Encoding.UTF8.GetBytes(body.ToQueryString()),
+                ParameterType.RequestBody
+            );
+            SignRequest(request, body.ToQueryString());
+
+            var response = ExecuteRestRequest(request);
+            if (response.StatusCode == HttpStatusCode.OK)
+            {
+                Log.Trace($"Order updatesd successfully - OrderId: {order.Id}");
+                return true;
+            }
+
+            var message = $"Order update failed, Order Id: {order.Id} timestamp: {order.Time} quantity: {order.Quantity} content: {response.Content}";
+            OnOrderEvent(new OrderEvent(order, DateTime.UtcNow, OrderFee.Zero, "Bitmex Order Event") { Status = OrderStatus.Invalid });
+            OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, -1, message));
+
+            return true;
         }
 
         /// <summary>
