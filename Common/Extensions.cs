@@ -1514,5 +1514,15 @@ namespace QuantConnect
                 return s;
             }
         }
+
+        /// <summary>
+        /// Convert dictionary to query string
+        /// </summary>
+        /// <param name="pairs"></param>
+        /// <returns></returns>
+        public static string ToQueryString(this IDictionary<string, object> pairs)
+        {
+            return string.Join("&", pairs.Select(pair => $"{pair.Key}={pair.Value}"));
+        }
     }
 }
