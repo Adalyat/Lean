@@ -280,9 +280,47 @@ namespace QuantConnect.Brokerages.Bitmex
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Cancels the order with the specified ID
+        /// </summary>
+        /// <param name="order">The order to cancel</param>
+        /// <returns>True if the request was submitted for cancellation, false otherwise</returns>
         public override bool CancelOrder(Order order)
         {
-            throw new NotImplementedException();
+            var success = new List<bool>();
+            IDictionary<string, object> body = new Dictionary<string, object>();
+            foreach (var id in order.BrokerId)
+            {
+                body["orderID"] = id;
+                var request = new RestRequest(GetEndpoint("/order"), Method.DELETE);
+                SignRequest(request, body.ToQueryString());
+                request.AddParameter(
+                    "application/x-www-form-urlencoded",
+                    Encoding.UTF8.GetBytes(body.ToQueryString()),
+                    ParameterType.RequestBody
+                );
+
+                var response = ExecuteRestRequest(request);
+                if (response.StatusCode == HttpStatusCode.OK)
+                {
+                    var parsed = JsonConvert.DeserializeObject<Messages.Order[]>(response.Content);
+                    var cancelledOrder = parsed.FirstOrDefault(o => string.Equals(o.Id.ToString(), id));
+                    success.Add(parsed != null && string.IsNullOrEmpty(cancelledOrder.Error));
+                }
+                else
+                {
+                    success.Add(false);
+                }
+            }
+
+            var cancellationSubmitted = false;
+            if (success.All(a => a))
+            {
+                OnOrderEvent(new OrderEvent(order, DateTime.UtcNow, OrderFee.Zero, "Bitmex Order Event") { Status = OrderStatus.Canceled });
+                cancellationSubmitted = true;
+            }
+
+            return cancellationSubmitted;
         }
 
         public override void OnMessage(object sender, WebSocketMessage e)

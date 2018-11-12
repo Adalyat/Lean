@@ -76,6 +76,7 @@ namespace QuantConnect.Brokerages.Bitmex
             public decimal Quantity { get; set; }
             public string Side { get; set; }
             public DateTime Timestamp { get; set; }
+            public string Error { get; set; }
         }
 #pragma warning restore 1591
     }
