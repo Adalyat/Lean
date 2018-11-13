@@ -15,6 +15,7 @@
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using QuantConnect.Orders;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -84,7 +85,8 @@ namespace QuantConnect.Brokerages.Bitmex
         {
             None,
             Subscribe,
-            Unsubscribe
+            Unsubscribe,
+            OrderBook
         }
 
         public class BaseMessage
@@ -109,6 +111,13 @@ namespace QuantConnect.Brokerages.Bitmex
                 if (jobject.TryGetValue("unsubscribe", out t))
                 {
                     return new Unsubscribe(content);
+                }
+                if (jobject.TryGetValue("table", out t))
+                {
+                    if (t.Value<string>() == "orderBookL2")
+                    {
+                        return new OrderBookData(content);
+                    }
                 }
                 return null;
             }
@@ -137,6 +146,32 @@ namespace QuantConnect.Brokerages.Bitmex
 
             public Unsubscribe(string content) : base(content)
             { }
+        }
+
+        public class OrderBookData : BaseMessage
+        {
+            public override EventType Type => EventType.OrderBook;
+            public string Action => JObject.Value<string>("action");
+            public IEnumerable<OrderBookEntry> Data
+            {
+                get
+                {
+                    var r = JObject.GetValue("data");
+                    return r.ToObject<List<OrderBookEntry>>();
+                }
+            }
+
+            public OrderBookData(string content) : base(content)
+            { }
+        }
+
+        public class OrderBookEntry
+        {
+            public long Id { get; set; }
+            public string Symbol { get; set; }
+            public OrderDirection Side { get; set; }
+            public decimal Size { get; set; }
+            public decimal Price { get; set; }
         }
 #pragma warning restore 1591
     }

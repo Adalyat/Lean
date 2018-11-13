@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
+using QuantConnect.Data.Market;
 using QuantConnect.Logging;
 using System;
 using System.Collections.Concurrent;
@@ -15,6 +16,7 @@ namespace QuantConnect.Brokerages.Bitmex
         private readonly object TickLocker = new object();
         private readonly object channelLocker = new object();
         private readonly ConcurrentQueue<WebSocketMessage> _messageBuffer = new ConcurrentQueue<WebSocketMessage>();
+        private readonly ConcurrentDictionary<Symbol, BitmexOrderBook> _orderBooks = new ConcurrentDictionary<Symbol, BitmexOrderBook>();
 
         /// <summary>
         /// Wss message handler
@@ -60,6 +62,9 @@ namespace QuantConnect.Brokerages.Bitmex
                         return;
                     case Messages.EventType.Unsubscribe:
                         OnUnsubscribe(message.ToObject<Messages.Unsubscribe>());
+                        return;
+                    case Messages.EventType.OrderBook:
+                        OnOrderbook(message.ToObject<Messages.OrderBookData>());
                         return;
                 }
             }
@@ -132,6 +137,125 @@ namespace QuantConnect.Brokerages.Bitmex
             {
                 Log.Error(e);
                 throw;
+            }
+        }
+
+        private void OnOrderbook(Messages.OrderBookData orderBookData)
+        {
+            if (orderBookData.Action.Equals("partial", StringComparison.OrdinalIgnoreCase))
+            {
+                ProcessSnapshot(orderBookData.Data);
+            }
+            else
+            {
+                ProcessUpdate(orderBookData.Action, orderBookData.Data);
+            }
+        }
+
+        private void ProcessSnapshot(IEnumerable<Messages.OrderBookEntry> entries)
+        {
+            try
+            {
+                var symbol = _symbolMapper.GetLeanSymbol(entries.First().Symbol);
+
+                BitmexOrderBook orderBook;
+                if (!_orderBooks.TryGetValue(symbol, out orderBook))
+                {
+                    orderBook = new BitmexOrderBook(symbol);
+                    _orderBooks[symbol] = orderBook;
+                }
+                else
+                {
+                    orderBook.BestBidAskUpdated -= OnBestBidAskUpdated;
+                    orderBook.Clear();
+                }
+
+                foreach (var entry in entries)
+                {
+                    orderBook.AddPriceLevel(entry.Id, entry.Side, entry.Price);
+
+                    if (entry.Side == Orders.OrderDirection.Buy)
+                        orderBook.UpdateBidRow(entry.Price, entry.Size);
+                    else
+                        orderBook.UpdateAskRow(entry.Price, entry.Size);
+                }
+
+                orderBook.BestBidAskUpdated += OnBestBidAskUpdated;
+
+                EmitQuoteTick(symbol, orderBook.BestBidPrice, orderBook.BestBidSize, orderBook.BestAskPrice, orderBook.BestAskSize);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+                throw;
+            }
+        }
+
+        private void ProcessUpdate(string action, IEnumerable<Messages.OrderBookEntry> entries)
+        {
+            try
+            {
+                foreach (var entry in entries)
+                {
+                    var symbol = _symbolMapper.GetLeanSymbol(entry.Symbol);
+                    var orderBook = _orderBooks[symbol];
+
+                    if (action == "delete")
+                    {
+                        orderBook.RemovePriceLevel(entry.Id);
+                    }
+                    else
+                    {
+                        if (action == "insert")
+                        {
+                            orderBook.AddPriceLevel(entry.Id, entry.Side, entry.Price);
+                        }
+
+                        var priceLevel = orderBook.GetPriceLevel(entry.Id);
+                        if (entry.Side != priceLevel.Side)
+                        {
+                            orderBook.RemovePriceLevel(entry.Id);
+                            orderBook.AddPriceLevel(entry.Id, entry.Side, priceLevel.Price);
+                        }
+
+                        if (entry.Side == Orders.OrderDirection.Buy)
+                        {
+                            orderBook.UpdateBidRow(priceLevel.Price, entry.Size);
+                        }
+                        else if (entry.Side == Orders.OrderDirection.Sell)
+                        {
+                            orderBook.UpdateAskRow(priceLevel.Price, entry.Size);
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+                throw;
+            }
+        }
+
+        private void OnBestBidAskUpdated(object sender, BestBidAskUpdatedEventArgs e)
+        {
+            EmitQuoteTick(e.Symbol, e.BestBidPrice, e.BestBidSize, e.BestAskPrice, e.BestAskSize);
+        }
+
+        private void EmitQuoteTick(Symbol symbol, decimal bidPrice, decimal bidSize, decimal askPrice, decimal askSize)
+        {
+            lock (TickLocker)
+            {
+                Ticks.Add(new Tick
+                {
+                    AskPrice = askPrice,
+                    BidPrice = bidPrice,
+                    Value = (askPrice + bidPrice) / 2m,
+                    Time = DateTime.UtcNow,
+                    Symbol = symbol,
+                    TickType = TickType.Quote,
+                    AskSize = Math.Abs(askSize),
+                    BidSize = Math.Abs(bidSize)
+                });
             }
         }
     }
