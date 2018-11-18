@@ -66,6 +66,9 @@ namespace QuantConnect.Brokerages.Bitmex
                     case Messages.EventType.OrderBook:
                         OnOrderbook(message.ToObject<Messages.OrderBookData>());
                         return;
+                    case Messages.EventType.Trade:
+                        OnTrade(message.ToObject<Messages.TradeData>());
+                        return;
                 }
             }
             catch (Exception exception)
@@ -255,6 +258,36 @@ namespace QuantConnect.Brokerages.Bitmex
                     TickType = TickType.Quote,
                     AskSize = Math.Abs(askSize),
                     BidSize = Math.Abs(bidSize)
+                });
+            }
+        }
+        
+        private void OnTrade(Messages.TradeData trade)
+        {
+            if (trade.Action != "insert")
+                return;
+
+            foreach (var item in trade.Data)
+            {
+                EmitTradeTick(
+                    _symbolMapper.GetLeanSymbol(item.Symbol),
+                    item.Timestamp,
+                    item.Price,
+                    item.Size);
+            }
+        }
+
+        private void EmitTradeTick(Symbol symbol, DateTime time, decimal price, decimal quantity)
+        {
+            lock (TickLocker)
+            {
+                Ticks.Add(new Tick
+                {
+                    Symbol = symbol,
+                    Value = price,
+                    Quantity = Math.Abs(quantity),
+                    Time = time,
+                    TickType = TickType.Trade
                 });
             }
         }

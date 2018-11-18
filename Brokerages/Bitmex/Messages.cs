@@ -86,7 +86,8 @@ namespace QuantConnect.Brokerages.Bitmex
             None,
             Subscribe,
             Unsubscribe,
-            OrderBook
+            OrderBook,
+            Trade
         }
 
         public class BaseMessage
@@ -117,6 +118,10 @@ namespace QuantConnect.Brokerages.Bitmex
                     if (t.Value<string>() == "orderBookL2")
                     {
                         return new OrderBookData(content);
+                    }
+                    else if (t.Value<string>() == "trade")
+                    {
+                        return new TradeData(content);
                     }
                 }
                 return null;
@@ -172,6 +177,31 @@ namespace QuantConnect.Brokerages.Bitmex
             public OrderDirection Side { get; set; }
             public decimal Size { get; set; }
             public decimal Price { get; set; }
+        }
+
+        public class TradeData : BaseMessage
+        {
+            public override EventType Type => EventType.Trade;
+            public string Action => JObject.Value<string>("action");
+            public IEnumerable<TradeDataEntry> Data
+            {
+                get
+                {
+                    var r = JObject.GetValue("data");
+                    return r.ToObject<List<TradeDataEntry>>();
+                }
+            }
+
+            public TradeData(string content) : base(content)
+            { }
+        }
+
+        public class TradeDataEntry
+        {
+            public string Symbol { get; set; }
+            public decimal Price { get; set; }
+            public decimal Size { get; set; }
+            public DateTime Timestamp { get; set; }
         }
 #pragma warning restore 1591
     }

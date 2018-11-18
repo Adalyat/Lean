@@ -433,7 +433,7 @@ namespace QuantConnect.Brokerages.Bitmex
                 WebSocket.Send(JsonConvert.SerializeObject(new
                 {
                     op = "subscribe",
-                    args = pending.Select(ch => $"orderBookL2:{ch}")
+                    args = pending.SelectMany(ch => new[] { $"orderBookL2:{ch}", $"trade:{ch}" })
                 }));
             }
 
