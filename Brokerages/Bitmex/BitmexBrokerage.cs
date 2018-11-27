@@ -25,6 +25,7 @@ namespace QuantConnect.Brokerages.Bitmex
         private readonly RateGate _restRateLimiter = new RateGate(150, TimeSpan.FromMinutes(5));
         private readonly IPriceProvider _priceProvider;
         private readonly BitmexSymbolMapper _symbolMapper = new BitmexSymbolMapper();
+        private readonly string wssUrlRelativePath = null;
 
         /// <summary>
         /// Constructor for brokerage
@@ -40,6 +41,11 @@ namespace QuantConnect.Brokerages.Bitmex
             _algorithm = algorithm;
             _securityProvider = algorithm?.Portfolio;
             _priceProvider = priceProvider;
+            wssUrlRelativePath = new Uri(wssUrl).AbsolutePath;
+            WebSocket.Open += (sender, args) =>
+            {
+                SubscribeAuth();
+            };
         }
 
         /// <summary>
@@ -151,7 +157,7 @@ namespace QuantConnect.Brokerages.Bitmex
                         continue;
                 }
 
-                order.Quantity = item.Side == "sell" ? -item.Quantity : item.Quantity;
+                order.Quantity = item.Side == "sell" ? -item.Quantity.Value : item.Quantity.Value;
                 order.BrokerId = new List<string> { item.Id.ToString() };
                 order.Symbol = _symbolMapper.GetLeanSymbol(item.Symbol);
                 order.Time = item.Timestamp;
@@ -433,7 +439,12 @@ namespace QuantConnect.Brokerages.Bitmex
                 WebSocket.Send(JsonConvert.SerializeObject(new
                 {
                     op = "subscribe",
-                    args = pending.SelectMany(ch => new[] { $"orderBookL2:{ch}", $"trade:{ch}" })
+                    args = pending.SelectMany(ch => new[] {
+                        $"orderBookL2:{ch}",
+                        $"trade:{ch}",
+                        $"execution:{ch}",
+                        $"order:{ch}"
+                    })
                 }));
             }
 
@@ -448,6 +459,27 @@ namespace QuantConnect.Brokerages.Bitmex
         public void Subscribe(LiveNodePacket job, IEnumerable<Symbol> symbols)
         {
             Subscribe(symbols);
+        }
+
+        private void SubscribeAuth()
+        {
+            if (string.IsNullOrEmpty(ApiKey) || string.IsNullOrEmpty(ApiSecret))
+                return;
+
+            var expires = GetExpires();
+            var signature = ByteArrayToString(
+                hmacsha256(
+                    Encoding.UTF8.GetBytes(ApiSecret),
+                    Encoding.UTF8.GetBytes("GET" + wssUrlRelativePath + expires)
+                ));
+
+            WebSocket.Send(JsonConvert.SerializeObject(new
+            {
+                op = "authKeyExpires",
+                args = new object[] { ApiKey, expires, signature }
+            }));
+
+            Log.Trace("BitmexBrokerage.Subscribe: Sent subscribe.");
         }
 
         /// <summary>

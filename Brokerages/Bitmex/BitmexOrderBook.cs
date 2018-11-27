@@ -58,7 +58,7 @@ namespace QuantConnect.Brokerages.Bitmex
         /// <summary>
         /// Clears all bid/ask levels and prices.
         /// </summary>
-        public override void Clear()
+        public void Clear()
         {
             base.Clear();
             PriceLevels.Clear();

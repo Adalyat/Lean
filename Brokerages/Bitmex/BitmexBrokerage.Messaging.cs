@@ -1,6 +1,9 @@
 ﻿using Newtonsoft.Json.Linq;
 using QuantConnect.Data.Market;
 using QuantConnect.Logging;
+using QuantConnect.Orders;
+using QuantConnect.Orders.Fees;
+using QuantConnect.Securities;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -68,6 +71,9 @@ namespace QuantConnect.Brokerages.Bitmex
                         return;
                     case Messages.EventType.Trade:
                         OnTrade(message.ToObject<Messages.TradeData>());
+                        return;
+                    case Messages.EventType.Execution:
+                        OnExecution(message.ToObject<Messages.ExecutionData>());
                         return;
                 }
             }
@@ -261,7 +267,7 @@ namespace QuantConnect.Brokerages.Bitmex
                 });
             }
         }
-        
+
         private void OnTrade(Messages.TradeData trade)
         {
             if (trade.Action != "insert")
@@ -290,6 +296,87 @@ namespace QuantConnect.Brokerages.Bitmex
                     TickType = TickType.Trade
                 });
             }
+        }
+
+        private void OnExecution(Messages.ExecutionData data)
+        {
+            if (data.Action != "insert")
+                return;
+
+            foreach (var item in data.Data)
+            {
+                var status = ConvertOrderStatus(item.Status);
+                if (status == OrderStatus.PartiallyFilled || status == OrderStatus.Filled)
+                {
+                    OnFillOrder(item);
+                }
+                else if (status == OrderStatus.Canceled)
+                {
+                    OnOrderClose(item);
+                }
+            }
+        }
+
+        private void OnFillOrder(Messages.ExecutionDataEntry data)
+        {
+            try
+            {
+                var order = FindOrderByExternalId(data.OrderId.ToString());
+                if (order == null)
+                {
+                    // not our order, nothing else to do here
+                    return;
+                }
+
+                var symbol = _symbolMapper.GetLeanSymbol(data.Symbol);
+                var fillPrice = data.LastPrice;
+                var fillQuantity = data.LastQuantity * (data.Side == OrderDirection.Sell ? -1 : 1);
+                var updTime = data.Timestamp;
+                var orderFee = new OrderFee(new CashAmount(data.Fee, data.FeeCurreny));
+
+                var orderEvent = new OrderEvent
+                (
+                    order.Id, symbol, updTime, ConvertOrderStatus(data.Status),
+                    data.Side, fillPrice.Value, fillQuantity.Value,
+                    orderFee, $"Bitmex Order Event {data.Side}"
+                );
+
+                OnOrderEvent(orderEvent);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+                throw;
+            }
+        }
+
+        private void OnOrderClose(Messages.ExecutionDataEntry data)
+        {
+            var order = FindOrderByExternalId(data.OrderId.ToString());
+            if (order == null)
+            {
+                // not our order, nothing else to do here
+                return;
+            }
+
+            Orders.Order outOrder;
+            if (CachedOrderIDs.TryRemove(order.Id, out outOrder))
+            {
+                OnOrderEvent(new OrderEvent(order, data.Timestamp, OrderFee.Zero, "Bitmex Order Event") { Status = OrderStatus.Canceled });
+            }
+        }
+
+        private Orders.Order FindOrderByExternalId(string brokerId)
+        {
+            var order = CachedOrderIDs
+                .FirstOrDefault(o => o.Value.BrokerId.Contains(brokerId))
+                .Value;
+            if (order == null)
+            {
+                order = _algorithm.Transactions.GetOrderByBrokerageId(brokerId);
+            }
+
+            return order;
         }
     }
 }

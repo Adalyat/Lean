@@ -74,8 +74,10 @@ namespace QuantConnect.Brokerages.Bitmex
             public decimal? Price { get; set; }
             [JsonProperty(PropertyName = "stopPx")]
             public decimal? StopPrice { get; internal set; }
+            [JsonProperty(PropertyName = "avgPx")]
+            public decimal? AvgPrice { get; internal set; }
             [JsonProperty(PropertyName = "orderQty")]
-            public decimal Quantity { get; set; }
+            public decimal? Quantity { get; set; }
             public string Side { get; set; }
             public DateTime Timestamp { get; set; }
             public string Error { get; set; }
@@ -87,7 +89,9 @@ namespace QuantConnect.Brokerages.Bitmex
             Subscribe,
             Unsubscribe,
             OrderBook,
-            Trade
+            Trade,
+            Order,
+            Execution
         }
 
         public class BaseMessage
@@ -122,6 +126,10 @@ namespace QuantConnect.Brokerages.Bitmex
                     else if (t.Value<string>() == "trade")
                     {
                         return new TradeData(content);
+                    }
+                    else if (t.Value<string>() == "execution")
+                    {
+                        return new ExecutionData(content);
                     }
                 }
                 return null;
@@ -203,6 +211,45 @@ namespace QuantConnect.Brokerages.Bitmex
             public decimal Size { get; set; }
             public DateTime Timestamp { get; set; }
         }
+
+        public class ExecutionData : BaseMessage
+        {
+            public override EventType Type => EventType.Execution;
+            public string Action => JObject.Value<string>("action");
+            public IEnumerable<ExecutionDataEntry> Data
+            {
+                get
+                {
+                    var r = JObject.GetValue("data");
+                    return r.ToObject<List<ExecutionDataEntry>>();
+                }
+            }
+
+            public ExecutionData(string content) : base(content)
+            {
+
+            }
+        }
+
+        public class ExecutionDataEntry
+        {
+            public Guid OrderId { get; set; }
+            public string Symbol { get; set; }
+            [JsonProperty(PropertyName = "lastPx")]
+            public decimal? LastPrice { get; set; }
+            [JsonProperty(PropertyName = "lastQty")]
+            public decimal? LastQuantity { get; set; }
+            public OrderDirection Side { get; set; }
+            public DateTime Timestamp { get; set; }
+            [JsonProperty(PropertyName = "ordStatus")]
+            public string Status { get; set; }
+            [JsonProperty(PropertyName = "execComm")]
+            public decimal? FeeInSatoshi { get; set; }
+            public decimal Fee => (FeeInSatoshi * LastPrice * Satoshi ?? 0);
+            [JsonProperty(PropertyName = "currency")]
+            public string FeeCurreny { get; set; }
+        }
+
 #pragma warning restore 1591
     }
 }

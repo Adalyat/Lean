@@ -168,12 +168,20 @@ namespace QuantConnect.Brokerages.Bitmex
 
         private static OrderStatus ConvertOrderStatus(Messages.Order item)
         {
-            if (_statusMapper.ContainsKey(item.Status))
+            return ConvertOrderStatus(item.Status);
+        }
+
+        private static OrderStatus ConvertOrderStatus(string status)
+        {
+            if (string.IsNullOrEmpty(status))
+                return OrderStatus.None;
+
+            if (_statusMapper.ContainsKey(status))
             {
-                return _statusMapper[item.Status];
+                return _statusMapper[status];
             }
 
-            return Orders.OrderStatus.None;
+            return OrderStatus.None;
         }
     }
 }
