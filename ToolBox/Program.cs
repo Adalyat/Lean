@@ -21,6 +21,7 @@ using QuantConnect.Configuration;
 using QuantConnect.ToolBox.AlgoSeekFuturesConverter;
 using QuantConnect.ToolBox.AlgoSeekOptionsConverter;
 using QuantConnect.ToolBox.BitfinexDownloader;
+using QuantConnect.ToolBox.BitmexDownloader;
 using QuantConnect.ToolBox.CoarseUniverseGenerator;
 using QuantConnect.ToolBox.CoinApiDataConverter;
 using QuantConnect.ToolBox.CryptoiqDownloader;
@@ -124,6 +125,10 @@ namespace QuantConnect.ToolBox
                     case "bfxdl":
                     case "bitfinexdownloader":
                         BitfinexDownloaderProgram.BitfinexDownloader(tickers, resolution, fromDate, toDate);
+                        break;
+                    case "bmxdl":
+                    case "bitmexdownloader":
+                        BitmexDownloaderProgram.BitmexDownloader(tickers, resolution, fromDate, toDate);
                         break;
                     case "secdl":
                     case "secdownloader":

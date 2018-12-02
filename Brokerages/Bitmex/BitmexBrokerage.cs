@@ -26,6 +26,7 @@ namespace QuantConnect.Brokerages.Bitmex
         private readonly IPriceProvider _priceProvider;
         private readonly BitmexSymbolMapper _symbolMapper = new BitmexSymbolMapper();
         private readonly string wssUrlRelativePath = null;
+        private const int maxBucketSize = 750;
 
         /// <summary>
         /// Constructor for brokerage
@@ -396,6 +397,67 @@ namespace QuantConnect.Brokerages.Bitmex
 
             UnlockStream();
             return cancellationSubmitted;
+        }
+
+        /// <summary>
+        /// Gets the history for the requested security
+        /// </summary>
+        /// <param name="request">The historical data request</param>
+        /// <returns>An enumerable of bars covering the span specified in the request</returns>
+        public override IEnumerable<BaseData> GetHistory(Data.HistoryRequest request)
+        {
+            if (!_knownResolutions.ContainsKey(request.Resolution))
+            {
+                OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, "InvalidResolution",
+                    $"{request.Resolution} resolution not supported, no history returned"));
+                yield break;
+            }
+
+            string resolution = ConvertResolution(request.Resolution);
+            long resolutionInMS = (long)request.Resolution.ToTimeSpan().TotalMilliseconds;
+            string symbol = _symbolMapper.GetBrokerageSymbol(request.Symbol);
+            TimeSpan period = request.Resolution.ToTimeSpan();
+            // add period as Bitmex send bar close in timespan value
+            DateTime startTime = request.StartTimeUtc.AddMilliseconds(period.TotalMilliseconds);
+            DateTime endTime = request.EndTimeUtc.AddMilliseconds(period.TotalMilliseconds);
+            string endpoint = GetEndpoint($"/trade/bucketed?symbol={symbol}&binSize={resolution}&partial=false&count={maxBucketSize}&reverse=false");
+
+            while ((endTime - startTime).TotalMilliseconds > resolutionInMS)
+            {
+                var timeframe = $"&startTime={startTime.ToString("o", CultureInfo.InvariantCulture)}&endTime={endTime.ToString("o", CultureInfo.InvariantCulture)}";
+
+                var restRequest = new RestRequest(endpoint + timeframe, Method.GET);
+                var response = ExecuteRestRequest(restRequest);
+
+                if (response.StatusCode != HttpStatusCode.OK)
+                {
+                    throw new Exception($"BitmexBrokerage.GetHistory: request failed: [{(int)response.StatusCode}] {response.StatusDescription}, Content: {response.Content}, ErrorMessage: {response.ErrorMessage}");
+                }
+
+                var buckets = JsonConvert.DeserializeObject<Messages.Bucket[]>(response.Content)
+                    .ToList();
+
+                startTime = Time.ParseDate(buckets.Last().Timestamp)
+                    .AddMilliseconds(resolutionInMS);
+
+                foreach (var item in buckets)
+                {
+                    yield return new TradeBar()
+                    {
+                        Time = Time.ParseDate(item.Timestamp).AddMilliseconds(-1 * (long)period.TotalMilliseconds),
+                        Symbol = request.Symbol,
+                        Low = item.Low,
+                        High = item.High,
+                        Open = item.Open,
+                        Close = item.Close,
+                        Volume = item.Volume,
+                        Value = item.Close,
+                        DataType = MarketDataType.TradeBar,
+                        Period = period,
+                        EndTime = Time.ParseDate(item.Timestamp)
+                    };
+                }
+            }
         }
 
         /// <summary>

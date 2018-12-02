@@ -183,5 +183,24 @@ namespace QuantConnect.Brokerages.Bitmex
 
             return OrderStatus.None;
         }
+
+        private static readonly Dictionary<Resolution, string> _knownResolutions = new Dictionary<Resolution, string>()
+        {
+            { Resolution.Minute, "1m" },
+            { Resolution.Hour,   "1h" },
+            { Resolution.Daily,  "1d" }
+        };
+
+        private static string ConvertResolution(Resolution resolution)
+        {
+            if (_knownResolutions.ContainsKey(resolution))
+            {
+                return _knownResolutions[resolution];
+            }
+            else
+            {
+                throw new ArgumentException($"BitmexBrokerage.ConvertResolution: Unsupported resolution type: {resolution}");
+            }
+        }
     }
 }
