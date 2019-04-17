@@ -70,6 +70,9 @@ namespace QuantConnect.Brokerages.Bitmex
             if (symbol.ID.SecurityType != SecurityType.Crypto)
                 throw new ArgumentException("Invalid security type: " + symbol.ID.SecurityType);
 
+            if (symbol.ID.Market != Market.Bitmex)
+                throw new ArgumentException($"Invalid market: {symbol.ID.Market}");
+
             var brokerageSymbol = ConvertLeanSymbolToBitmexSymbol(symbol.Value);
 
             if (!IsKnownBrokerageSymbol(brokerageSymbol))

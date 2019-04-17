@@ -284,6 +284,7 @@
     <Compile Include="Brokerages\Bitfinex\BitfinexSymbolMapperTests.cs" />
     <Compile Include="Brokerages\Bitfinex\BitfinexBrokerageHistoryProviderTests.cs" />
     <Compile Include="Brokerages\Bitmex\BitmexFeeModelTests.cs" />
+    <Compile Include="Brokerages\Bitmex\BitmexSymbolMapperTests.cs" />
     <Compile Include="Brokerages\DowngradeErrorCodeToWarningBrokerageMessageHandlerTests.cs" />
     <Compile Include="Brokerages\Paper\PaperBrokerageTests.cs" />
     <Compile Include="Common\Benchmarks\SecurityBenchmarkTests.cs" />
