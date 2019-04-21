@@ -102,6 +102,6 @@ namespace QuantConnect.Tests.Brokerages.Bitmex
         /// <summary>
         /// Gets the default order quantity. Min order 10USD.
         /// </summary>
-        protected override decimal GetDefaultQuantity() => 0.1m;
+        protected override decimal GetDefaultQuantity() => 50m;
     }
 }

@@ -36,7 +36,7 @@ namespace QuantConnect.Brokerages
         /// <returns>The buying power model for this brokerage/security</returns>
         public override IBuyingPowerModel GetBuyingPowerModel(Security security)
         {
-            return new SecurityMarginModel(GetLeverage(security));
+            return new BitmexMarginModel(GetLeverage(security));
         }
 
         /// <summary>

@@ -318,6 +318,7 @@
     <Compile Include="Securities\GetMinimumPriceVariationParameters.cs" />
     <Compile Include="Securities\ReservedBuyingPowerForPosition.cs" />
     <Compile Include="Securities\ReservedBuyingPowerForPositionParameters.cs" />
+    <Compile Include="Securities\BitmexMarginModel.cs" />
     <Compile Include="Securities\SecurityService.cs" />
     <Compile Include="Securities\Volatility\BaseVolatilityModel.cs" />
     <Compile Include="Series.cs" />
