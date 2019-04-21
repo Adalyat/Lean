@@ -18,6 +18,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using NUnit.Framework;
+using QuantConnect.Brokerages;
 using QuantConnect.Data;
 using QuantConnect.Data.Market;
 using QuantConnect.Interfaces;
@@ -127,6 +128,9 @@ namespace QuantConnect.Tests.Brokerages
             if (brokerage.Name == "GDAX")
             {
                 ((QuantConnect.Brokerages.GDAX.GDAXBrokerage)brokerage).Subscribe(new[] { Symbol });
+            } else  if (brokerage is BaseWebsocketsBrokerage)
+            {
+                (brokerage as BaseWebsocketsBrokerage).Subscribe(new[] { Symbol });
             }
 
             Log.Trace("");

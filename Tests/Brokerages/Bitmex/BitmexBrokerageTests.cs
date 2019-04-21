@@ -44,8 +44,8 @@ namespace QuantConnect.Tests.Brokerages.Bitmex
             return new BitmexBrokerage(
                     Config.Get("bitmex-wss", "wss://testnet.bitmex.com/realtime"),
                     Config.Get("bitmex-rest", "https://testnet.bitmex.com"),
-                    Config.Get("bitmex-api-key"),
-                    Config.Get("bitmex-api-secret"),
+                    Config.Get("bitmex-api-key", "lpVKclug56S9jKgjUo8By5mH"),
+                    Config.Get("bitmex-api-secret", "ktSOx6bYwA9zQpNmzl1nHNzhVPWhB1a_d64b-reY0IYc8cMF"),
                     algorithm.Object,
                     priceProvider.Object
                 );
