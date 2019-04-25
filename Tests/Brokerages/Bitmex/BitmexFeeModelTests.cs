@@ -79,7 +79,7 @@ namespace QuantConnect.Tests.Brokerages.Bitmex
             var fee = feeModel.GetOrderFee(new OrderFeeParameters(Security, order));
 
             Assert.AreEqual(
-                BitmexFeeModel.MakerFee * price * Math.Abs(Quantity),
+                BitmexFeeModel.MakerFee * 1 * Math.Abs(Quantity),
                 fee.Value.Amount);
             Assert.AreEqual("USD", fee.Value.Currency);
         }
@@ -95,7 +95,7 @@ namespace QuantConnect.Tests.Brokerages.Bitmex
             var fee = feeModel.GetOrderFee(new OrderFeeParameters(Security, order));
 
             Assert.AreEqual(
-                BitmexFeeModel.TakerFee * price * Math.Abs(Quantity),
+                BitmexFeeModel.TakerFee * 1 * Math.Abs(Quantity),
                 fee.Value.Amount);
             Assert.AreEqual("USD", fee.Value.Currency);
         }
@@ -111,7 +111,7 @@ namespace QuantConnect.Tests.Brokerages.Bitmex
             var fee = feeModel.GetOrderFee(new OrderFeeParameters(Security, order));
 
             Assert.AreEqual(
-                BitmexFeeModel.MakerFee * price * Math.Abs(Quantity),
+                BitmexFeeModel.MakerFee * 1 * Math.Abs(Quantity),
                 fee.Value.Amount);
             Assert.AreEqual("USD", fee.Value.Currency);
         }
@@ -127,7 +127,7 @@ namespace QuantConnect.Tests.Brokerages.Bitmex
             var fee = feeModel.GetOrderFee(new OrderFeeParameters(Security, order));
 
             Assert.AreEqual(
-                BitmexFeeModel.TakerFee * price * Math.Abs(Quantity),
+                BitmexFeeModel.TakerFee * 1 * Math.Abs(Quantity),
                 fee.Value.Amount);
             Assert.AreEqual("USD", fee.Value.Currency);
         }

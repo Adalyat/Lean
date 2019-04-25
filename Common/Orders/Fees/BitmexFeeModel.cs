@@ -68,7 +68,7 @@ namespace QuantConnect.Orders.Fees
 
             // apply fee factor, currently we do not model 30-day volume, so we use the first tier
             return new OrderFee(new CashAmount(
-                unitPrice * order.AbsoluteQuantity * fee,
+                1 * order.AbsoluteQuantity * fee,
                 security.QuoteCurrency.Symbol));
         }
     }

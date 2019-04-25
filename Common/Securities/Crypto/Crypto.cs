@@ -56,7 +56,14 @@ namespace QuantConnect.Securities.Crypto
                 currencyConverter
                 )
         {
-            Holdings = new CryptoHolding(this, currencyConverter);
+            if (config.Symbol.ID.Market == Market.Bitmex)
+            {
+                Holdings = new BitmexHolding(this, currencyConverter);
+            }
+            else
+            {
+                Holdings = new CryptoHolding(this, currencyConverter);
+            }
 
             // decompose the symbol into each currency pair
             string quoteCurrencySymbol, baseCurrencySymbol;
@@ -91,7 +98,15 @@ namespace QuantConnect.Securities.Crypto
                 currencyConverter
                 )
         {
-            Holdings = new CryptoHolding(this, currencyConverter);
+            if (symbol.ID.Market == Market.Bitmex)
+            {
+                Holdings = new BitmexHolding(this, currencyConverter);
+            }
+            else
+            {
+                Holdings = new CryptoHolding(this, currencyConverter);
+            }
+
 
             // decompose the symbol into each currency pair
             string quoteCurrencySymbol, baseCurrencySymbol;

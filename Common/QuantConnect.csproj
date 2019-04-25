@@ -305,6 +305,7 @@
     <Compile Include="Securities\BuyingPowerParameters.cs" />
     <Compile Include="Securities\BuyingPowerModel.cs" />
     <Compile Include="Securities\BuyingPowerModelExtensions.cs" />
+    <Compile Include="Securities\Crypto\BitmexHolding.cs" />
     <Compile Include="Securities\ErrorCurrencyConverter.cs" />
     <Compile Include="Securities\GetMaximumOrderQuantityForTargetValueParameters.cs" />
     <Compile Include="Securities\HasSufficientBuyingPowerForOrderParameters.cs" />

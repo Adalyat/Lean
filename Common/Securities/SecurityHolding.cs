@@ -79,6 +79,14 @@ namespace QuantConnect.Securities
             }
         }
 
+        protected ICurrencyConverter CurrencyConverter
+        {
+            get
+            {
+                return _currencyConverter;
+            }
+        }
+
         /// <summary>
         /// Gets the current target holdings for this security
         /// </summary>

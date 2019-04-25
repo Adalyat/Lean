@@ -13,6 +13,9 @@
  * limitations under the License.
 */
 
+using QuantConnect.Orders.Fees;
+using System;
+
 namespace QuantConnect.Securities
 {
     /// <summary>
@@ -51,7 +54,15 @@ namespace QuantConnect.Securities
 
         protected override decimal GetInitialMarginRequiredForOrder(InitialMarginRequiredForOrderParameters parameters)
         {
-            return base.GetInitialMarginRequiredForOrder(parameters) / parameters.Security.Price;
+            var fees = parameters.Security.FeeModel.GetOrderFee(
+                new OrderFeeParameters(parameters.Security,
+                    parameters.Order)).Value;
+            var feesInAccountCurrency = parameters.CurrencyConverter.
+                ConvertToAccountCurrency(fees).Amount;
+
+            var orderValue = parameters.Order.AbsoluteQuantity
+                * GetInitialMarginRequirement(parameters.Security);
+            return orderValue + Math.Sign(orderValue) * feesInAccountCurrency;
         }
     }
 }
