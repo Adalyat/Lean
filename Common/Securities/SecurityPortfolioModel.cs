@@ -76,7 +76,7 @@ namespace QuantConnect.Securities
                 {
                     // model forex fills as currency swaps
                     var forex = (IBaseCurrencySymbol) security;
-                    security.SettlementModel.ApplyFunds(portfolio, security, fill.UtcTime, forex.BaseCurrencySymbol, fill.FillQuantity);
+                    security.SettlementModel.ApplyFunds(portfolio, security, fill.UtcTime, forex.BaseCurrencySymbol, fill.FillQuantity / fill.FillPrice);
                 }
 
                 // did we close or open a position further?

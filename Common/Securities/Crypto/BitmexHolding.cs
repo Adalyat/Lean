@@ -43,8 +43,8 @@ namespace QuantConnect.Securities.Crypto
 
             // this is in the account currency
             var marketOrder = new MarketOrder(
-                Security.Symbol, 
-                -Quantity, 
+                Security.Symbol,
+                -Quantity,
                 Security.LocalTime.ConvertToUtc(Security.Exchange.TimeZone));
 
             var orderFee = Security.FeeModel.GetOrderFee(
@@ -56,6 +56,30 @@ namespace QuantConnect.Securities.Crypto
 
             return (price - AveragePrice) / price * Quantity * Security.QuoteCurrency.ConversionRate
                 * Security.SymbolProperties.ContractMultiplier - feesInAccountCurrency;
+        }
+
+        public override decimal HoldingsValue
+        {
+            get
+            {
+                if (Quantity == 0)
+                {
+                    return 0;
+                }
+                return Quantity * Security.QuoteCurrency.ConversionRate * Security.SymbolProperties.ContractMultiplier;
+            }
+        }
+
+        public override decimal HoldingsCost
+        {
+            get
+            {
+                if (Quantity == 0)
+                {
+                    return 0;
+                }
+                return Quantity * Security.QuoteCurrency.ConversionRate * Security.SymbolProperties.ContractMultiplier;
+            }
         }
     }
 }
