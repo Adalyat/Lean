@@ -75,7 +75,7 @@ namespace QuantConnect.Securities
                 if (security.Type == SecurityType.Forex || security.Type == SecurityType.Crypto)
                 {
                     // model forex fills as currency swaps
-                    var forex = (IBaseCurrencySymbol) security;
+                    var forex = (IBaseCurrencySymbol)security;
                     security.SettlementModel.ApplyFunds(portfolio, security, fill.UtcTime, forex.BaseCurrencySymbol, fill.FillQuantity / fill.FillPrice);
                 }
 
@@ -90,8 +90,9 @@ namespace QuantConnect.Securities
                     // closed sale value = quantity closed * fill price       BUYs are deemed negative cash flow
                     // cost = quantity closed * average holdings price        SELLS are deemed positive cash flow
                     var absoluteQuantityClosed = Math.Min(fill.AbsoluteFillQuantity, absoluteHoldingsQuantity);
-                    var closedSaleValueInQuoteCurrency = Math.Sign(-fill.FillQuantity)*fill.FillPrice*absoluteQuantityClosed;
-                    var closedCost = Math.Sign(-fill.FillQuantity)*absoluteQuantityClosed*averageHoldingsPrice;
+                    var baseqty = absoluteQuantityClosed / averageHoldingsPrice;
+                    var closedSaleValueInQuoteCurrency = Math.Sign(-fill.FillQuantity) * fill.FillPrice * baseqty;
+                    var closedCost = Math.Sign(-fill.FillQuantity) * baseqty * averageHoldingsPrice;
                     var lastTradeProfit = (closedSaleValueInQuoteCurrency - closedCost)
                         * security.SymbolProperties.ContractMultiplier;
                     var lastTradeProfitInAccountCurrency = lastTradeProfit * security.QuoteCurrency.ConversionRate;
@@ -125,7 +126,7 @@ namespace QuantConnect.Securities
                     {
                         case OrderDirection.Buy:
                             //Update the Holding Average Price: Total Value / Total Quantity:
-                            averageHoldingsPrice = ((averageHoldingsPrice*quantityHoldings) + (fill.FillQuantity*fill.FillPrice))/(quantityHoldings + fill.FillQuantity);
+                            averageHoldingsPrice = ((averageHoldingsPrice * quantityHoldings) + (fill.FillQuantity * fill.FillPrice)) / (quantityHoldings + fill.FillQuantity);
                             //Add the new quantity:
                             quantityHoldings += fill.FillQuantity;
                             break;
@@ -167,7 +168,7 @@ namespace QuantConnect.Securities
                             //We are increasing a Short position:
                             //E.g.  -100 @ $5, adding -100 @ $10: Avg: $7.5
                             //      dAvg = (-500 + -1000) / -200 = 7.5
-                            averageHoldingsPrice = ((averageHoldingsPrice*quantityHoldings) + (fill.FillQuantity*fill.FillPrice))/(quantityHoldings + fill.FillQuantity);
+                            averageHoldingsPrice = ((averageHoldingsPrice * quantityHoldings) + (fill.FillQuantity * fill.FillPrice)) / (quantityHoldings + fill.FillQuantity);
                             quantityHoldings += fill.FillQuantity;
                             break;
                     }
