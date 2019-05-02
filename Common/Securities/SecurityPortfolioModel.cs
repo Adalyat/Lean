@@ -49,7 +49,7 @@ namespace QuantConnect.Securities
             try
             {
                 // apply sales value to holdings in the account currency
-                var saleValueInQuoteCurrency = fill.FillPrice * Convert.ToDecimal(fill.AbsoluteFillQuantity) * security.SymbolProperties.ContractMultiplier;
+                var saleValueInQuoteCurrency = Convert.ToDecimal(fill.AbsoluteFillQuantity) * security.SymbolProperties.ContractMultiplier;
                 var saleValue = saleValueInQuoteCurrency * quoteCash.ConversionRate;
                 security.Holdings.AddNewSale(saleValue);
 
@@ -70,7 +70,7 @@ namespace QuantConnect.Securities
                 // we dont adjust funds for futures and CFDs: it is zero upfront payment derivative (margin applies though)
                 if (security.Type != SecurityType.Future && security.Type != SecurityType.Cfd)
                 {
-                    security.SettlementModel.ApplyFunds(portfolio, security, fill.UtcTime, quoteCash.Symbol, -fill.FillQuantity * fill.FillPrice * security.SymbolProperties.ContractMultiplier);
+                    security.SettlementModel.ApplyFunds(portfolio, security, fill.UtcTime, quoteCash.Symbol, -fill.FillQuantity * security.SymbolProperties.ContractMultiplier);
                 }
                 if (security.Type == SecurityType.Forex || security.Type == SecurityType.Crypto)
                 {
