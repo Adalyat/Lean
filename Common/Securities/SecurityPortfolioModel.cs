@@ -126,9 +126,9 @@ namespace QuantConnect.Securities
                     {
                         case OrderDirection.Buy:
                             //Update the Holding Average Price: Total Value / Total Quantity:
-                            averageHoldingsPrice = ((averageHoldingsPrice * quantityHoldings) + (fill.FillQuantity * fill.FillPrice)) / (quantityHoldings + fill.FillQuantity);
+                            averageHoldingsPrice = (quantityHoldings + fill.FillQuantity) / (quantityHoldings / averageHoldingsPrice + fill.FillQuantity / fill.FillPrice);
                             //Add the new quantity:
-                            quantityHoldings += fill.FillQuantity;
+                            quantityHoldings = quantityHoldings / security.Holdings.AveragePrice + fill.FillQuantity / fill.FillPrice;
                             break;
 
                         case OrderDirection.Sell:
@@ -165,11 +165,8 @@ namespace QuantConnect.Securities
                             break;
 
                         case OrderDirection.Sell:
-                            //We are increasing a Short position:
-                            //E.g.  -100 @ $5, adding -100 @ $10: Avg: $7.5
-                            //      dAvg = (-500 + -1000) / -200 = 7.5
-                            averageHoldingsPrice = ((averageHoldingsPrice * quantityHoldings) + (fill.FillQuantity * fill.FillPrice)) / (quantityHoldings + fill.FillQuantity);
-                            quantityHoldings += fill.FillQuantity;
+                            averageHoldingsPrice = (quantityHoldings + fill.FillQuantity) / (quantityHoldings / averageHoldingsPrice + fill.FillQuantity / fill.FillPrice);
+                            quantityHoldings = quantityHoldings / security.Holdings.AveragePrice + fill.FillQuantity / fill.FillPrice;
                             break;
                     }
                 }
