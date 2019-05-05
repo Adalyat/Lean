@@ -117,7 +117,7 @@ namespace QuantConnect.Securities
                 {
                     //First transaction just subtract order from cash and set our holdings:
                     averageHoldingsPrice = fill.FillPrice;
-                    quantityHoldings = fill.FillQuantity;
+                    quantityHoldings = fill.FillQuantity / fill.FillPrice;
                 }
                 else if (isLong)
                 {
@@ -132,7 +132,7 @@ namespace QuantConnect.Securities
                             break;
 
                         case OrderDirection.Sell:
-                            quantityHoldings += fill.FillQuantity; //+ a short = a subtraction
+                            quantityHoldings = quantityHoldings / security.Holdings.AveragePrice + fill.FillQuantity / fill.FillPrice; //+ a short = a subtraction
                             if (quantityHoldings < 0)
                             {
                                 //If we've now passed through zero from selling stock: new avg price:
@@ -152,7 +152,7 @@ namespace QuantConnect.Securities
                     {
                         case OrderDirection.Buy:
                             //Buying when we're shorting moves to close position:
-                            quantityHoldings += fill.FillQuantity;
+                            quantityHoldings = quantityHoldings / security.Holdings.AveragePrice + fill.FillQuantity / fill.FillPrice;
                             if (quantityHoldings > 0)
                             {
                                 //If we were short but passed through zero, new average price is what we paid. The short position was closed.
@@ -180,7 +180,7 @@ namespace QuantConnect.Securities
             }
 
             //Set the results back to the vehicle.
-            security.Holdings.SetHoldings(averageHoldingsPrice, quantityHoldings);
+            security.Holdings.SetHoldings(averageHoldingsPrice, (quantityHoldings * averageHoldingsPrice));
         }
     }
 }

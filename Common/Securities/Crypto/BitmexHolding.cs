@@ -66,7 +66,7 @@ namespace QuantConnect.Securities.Crypto
                 {
                     return 0;
                 }
-                return Quantity * Security.QuoteCurrency.ConversionRate * Security.SymbolProperties.ContractMultiplier;
+                return Price * (Quantity / AveragePrice) * Security.QuoteCurrency.ConversionRate * Security.SymbolProperties.ContractMultiplier;
             }
         }
 
@@ -78,7 +78,7 @@ namespace QuantConnect.Securities.Crypto
                 {
                     return 0;
                 }
-                return Quantity * Security.QuoteCurrency.ConversionRate * Security.SymbolProperties.ContractMultiplier;
+                return Price * (Quantity / AveragePrice) * Security.QuoteCurrency.ConversionRate * Security.SymbolProperties.ContractMultiplier;
             }
         }
     }
