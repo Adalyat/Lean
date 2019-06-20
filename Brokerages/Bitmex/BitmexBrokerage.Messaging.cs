@@ -305,14 +305,21 @@ namespace QuantConnect.Brokerages.Bitmex
 
             foreach (var item in data.Data)
             {
-                var status = ConvertOrderStatus(item.Status);
-                if (status == OrderStatus.PartiallyFilled || status == OrderStatus.Filled)
+                if (!string.Equals(item.ExecType, "Funding", StringComparison.OrdinalIgnoreCase))
                 {
-                    OnFillOrder(item);
+                    var status = ConvertOrderStatus(item.Status);
+                    if (status == OrderStatus.PartiallyFilled || status == OrderStatus.Filled)
+                    {
+                        OnFillOrder(item);
+                    }
+                    else if (status == OrderStatus.Canceled)
+                    {
+                        OnOrderClose(item);
+                    }
                 }
-                else if (status == OrderStatus.Canceled)
+                else
                 {
-                    OnOrderClose(item);
+                    OnFunding(item);
                 }
             }
         }
@@ -321,6 +328,11 @@ namespace QuantConnect.Brokerages.Bitmex
         {
             try
             {
+                if (!data.Side.HasValue)
+                {
+                    return;
+                }
+
                 var order = FindOrderByExternalId(data.OrderId.ToString());
                 if (order == null)
                 {
@@ -330,14 +342,14 @@ namespace QuantConnect.Brokerages.Bitmex
 
                 var symbol = _symbolMapper.GetLeanSymbol(data.Symbol);
                 var fillPrice = data.LastPrice;
-                var fillQuantity = data.LastQuantity * (data.Side == OrderDirection.Sell ? -1 : 1);
+                var fillQuantity = data.LastQuantity * (data.Side.Value == OrderDirection.Sell ? -1 : 1);
                 var updTime = data.Timestamp;
                 var orderFee = new OrderFee(new CashAmount(data.Fee, data.FeeCurreny));
 
                 var orderEvent = new OrderEvent
                 (
                     order.Id, symbol, updTime, ConvertOrderStatus(data.Status),
-                    data.Side, fillPrice.Value, fillQuantity.Value,
+                    data.Side.Value, fillPrice.Value, fillQuantity.Value,
                     orderFee, $"Bitmex Order Event {data.Side}"
                 );
 
@@ -363,6 +375,19 @@ namespace QuantConnect.Brokerages.Bitmex
             if (CachedOrderIDs.TryRemove(order.Id, out outOrder))
             {
                 OnOrderEvent(new OrderEvent(order, data.Timestamp, OrderFee.Zero, "Bitmex Order Event") { Status = OrderStatus.Canceled });
+            }
+        }
+
+        private void OnFunding(Messages.ExecutionDataEntry data)
+        {
+            try
+            {
+                _algorithm.Portfolio.CashBook["XBT"].AddAmount(-1 * (data.FeeInSatoshi * Messages.Satoshi ?? 0));
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+                throw;
             }
         }
 

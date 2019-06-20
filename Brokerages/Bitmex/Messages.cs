@@ -239,10 +239,12 @@ namespace QuantConnect.Brokerages.Bitmex
             public decimal? LastPrice { get; set; }
             [JsonProperty(PropertyName = "lastQty")]
             public decimal? LastQuantity { get; set; }
-            public OrderDirection Side { get; set; }
+            public OrderDirection? Side { get; set; }
             public DateTime Timestamp { get; set; }
             [JsonProperty(PropertyName = "ordStatus")]
             public string Status { get; set; }
+            [JsonProperty(PropertyName = "execType")]
+            public string ExecType { get; set; }
             [JsonProperty(PropertyName = "execComm")]
             public decimal? FeeInSatoshi { get; set; }
             public decimal Fee => (FeeInSatoshi * LastPrice * Satoshi ?? 0);
