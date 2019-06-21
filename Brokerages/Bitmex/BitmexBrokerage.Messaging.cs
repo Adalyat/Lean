@@ -238,6 +238,12 @@ namespace QuantConnect.Brokerages.Bitmex
                     }
                 }
             }
+            catch (KeyNotFoundException)
+            {
+                Disconnect();
+                _messageBuffer.Clear();
+                Reconnect();
+            }
             catch (Exception e)
             {
                 Log.Error(e);
