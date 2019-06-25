@@ -157,6 +157,7 @@
     <Compile Include="BasicTemplateAlgorithm.cs" />
     <Compile Include="Benchmarks\StatefulCoarseUniverseSelectionBenchmark.cs" />
     <Compile Include="Benchmarks\StatelessCoarseUniverseSelectionBenchmark.cs" />
+    <Compile Include="BitmexLiveSmaCross.cs" />
     <Compile Include="CapmAlphaRankingFrameworkAlgorithm.cs" />
     <Compile Include="CustomUniverseWithBenchmarkRegressionAlgorithm.cs" />
     <Compile Include="CoarseSelectionTimeRegressionAlgorithm.cs" />
