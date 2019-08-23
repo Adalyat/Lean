@@ -19,7 +19,7 @@ namespace QuantConnect.Brokerages.Bitmex
         private readonly object TickLocker = new object();
         private readonly object channelLocker = new object();
         private readonly ConcurrentQueue<WebSocketMessage> _messageBuffer = new ConcurrentQueue<WebSocketMessage>();
-        private readonly ConcurrentDictionary<Symbol, BitmexOrderBook> _orderBooks = new ConcurrentDictionary<Symbol, BitmexOrderBook>();
+        private readonly ConcurrentDictionary<Symbol, BitmexOrderBookUpdater> _orderBooks = new ConcurrentDictionary<Symbol, BitmexOrderBookUpdater>();
 
         /// <summary>
         /// Wss message handler
@@ -167,10 +167,10 @@ namespace QuantConnect.Brokerages.Bitmex
             {
                 var symbol = _symbolMapper.GetLeanSymbol(entries.First().Symbol);
 
-                BitmexOrderBook orderBook;
+                BitmexOrderBookUpdater orderBook;
                 if (!_orderBooks.TryGetValue(symbol, out orderBook))
                 {
-                    orderBook = new BitmexOrderBook(symbol);
+                    orderBook = new BitmexOrderBookUpdater(symbol);
                     _orderBooks[symbol] = orderBook;
                 }
                 else
@@ -181,12 +181,22 @@ namespace QuantConnect.Brokerages.Bitmex
 
                 foreach (var entry in entries)
                 {
-                    orderBook.AddPriceLevel(entry.Id, entry.Side, entry.Price);
-
                     if (entry.Side == Orders.OrderDirection.Buy)
-                        orderBook.UpdateBidRow(entry.Price, entry.Size);
+                    {
+                        orderBook.UpdateBidRow(entry.Id, new BitmexOrderBookUpdater.PriceLevelEntry()
+                        {
+                            Price = entry.Price,
+                            Size = entry.Size
+                        });
+                    }
                     else
-                        orderBook.UpdateAskRow(entry.Price, entry.Size);
+                    {
+                        orderBook.UpdateAskRow(entry.Id, new BitmexOrderBookUpdater.PriceLevelEntry()
+                        {
+                            Price = entry.Price,
+                            Size = entry.Size
+                        });
+                    }
                 }
 
                 orderBook.BestBidAskUpdated += OnBestBidAskUpdated;
@@ -215,25 +225,35 @@ namespace QuantConnect.Brokerages.Bitmex
                     }
                     else
                     {
-                        if (action == "insert")
-                        {
-                            orderBook.AddPriceLevel(entry.Id, entry.Side, entry.Price);
-                        }
-
-                        var priceLevel = orderBook.GetPriceLevel(entry.Id);
-                        if (entry.Side != priceLevel.Side)
-                        {
-                            orderBook.RemovePriceLevel(entry.Id);
-                            orderBook.AddPriceLevel(entry.Id, entry.Side, priceLevel.Price);
-                        }
-
                         if (entry.Side == Orders.OrderDirection.Buy)
                         {
-                            orderBook.UpdateBidRow(priceLevel.Price, entry.Size);
+                            if (action == "insert")
+                            {
+                                orderBook.UpdateBidRow(entry.Id, new BitmexOrderBookUpdater.PriceLevelEntry()
+                                {
+                                    Price = entry.Price,
+                                    Size = entry.Size
+                                });
+                            }
+                            else
+                            {
+                                orderBook.UpdateBidRow(entry.Id, entry.Size);
+                            }
                         }
                         else if (entry.Side == Orders.OrderDirection.Sell)
                         {
-                            orderBook.UpdateAskRow(priceLevel.Price, entry.Size);
+                            if (action == "insert")
+                            {
+                                orderBook.UpdateAskRow(entry.Id, new BitmexOrderBookUpdater.PriceLevelEntry()
+                                {
+                                    Price = entry.Price,
+                                    Size = entry.Size
+                                });
+                            }
+                            else
+                            {
+                                orderBook.UpdateAskRow(entry.Id, entry.Size);
+                            }
                         }
                     }
                 }
