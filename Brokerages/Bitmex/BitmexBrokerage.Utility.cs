@@ -4,6 +4,7 @@ using QuantConnect.Orders;
 using RestSharp;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
@@ -29,12 +30,13 @@ namespace QuantConnect.Brokerages.Bitmex
         /// https://bitmex.com/app/apiKeysUsage
         /// </summary>
         /// <param name="request">the rest request</param>
+        /// <param name="endpoint">the request endpoint including query string</param>
         /// <param name="payload">the body of the request</param>
         /// <returns>a token representing the request params</returns>
-        private void SignRequest(IRestRequest request, string payload)
+        private void SignRequest(IRestRequest request, string endpoint, string payload = null)
         {
-            string expires = GetExpires().ToString();
-            string message = request.Method + request.Resource + expires + payload;
+            string expires = GetExpires().ToString(CultureInfo.InvariantCulture);
+            string message = request.Method + endpoint + expires + payload;
             byte[] signatureBytes = hmacsha256(Encoding.UTF8.GetBytes(ApiSecret), Encoding.UTF8.GetBytes(message));
             string signatureString = ByteArrayToString(signatureBytes);
 
@@ -50,7 +52,7 @@ namespace QuantConnect.Brokerages.Bitmex
         /// <returns></returns>
         private long GetExpires()
         {
-            return (long)Time.DateTimeToUnixTimeStamp(DateTime.UtcNow) + 300; // set expires 5 minutes in the future
+            return (long)Time.DateTimeToUnixTimeStamp(DateTime.UtcNow.AddMinutes(5)); // set expires 5 minutes in the future
         }
 
         private byte[] hmacsha256(byte[] keyByte, byte[] messageBytes)

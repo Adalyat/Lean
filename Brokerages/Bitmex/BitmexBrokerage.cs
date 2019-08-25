@@ -73,7 +73,7 @@ namespace QuantConnect.Brokerages.Bitmex
             var endpoint = GetEndpoint($"/position?filter={WebUtility.UrlEncode("{\"isOpen\":true}")}");
             var request = new RestRequest(endpoint, Method.GET);
 
-            SignRequest(request, null);
+            SignRequest(request, endpoint);
 
             var response = ExecuteRestRequest(request);
             if (response.StatusCode != HttpStatusCode.OK)
@@ -98,7 +98,7 @@ namespace QuantConnect.Brokerages.Bitmex
             var endpoint = GetEndpoint("/user/margin?currency=all");
             var request = new RestRequest(endpoint, Method.GET);
 
-            SignRequest(request, null);
+            SignRequest(request, endpoint);
 
             var response = ExecuteRestRequest(request);
             if (response.StatusCode != HttpStatusCode.OK)
@@ -126,7 +126,7 @@ namespace QuantConnect.Brokerages.Bitmex
             var endpoint = GetEndpoint($"/order?filter={WebUtility.UrlEncode("{\"open\":true}")}");
             var request = new RestRequest(endpoint, Method.GET);
 
-            SignRequest(request, null);
+            SignRequest(request, endpoint);
             var response = ExecuteRestRequest(request);
 
             if (response.StatusCode != HttpStatusCode.OK)
@@ -236,7 +236,7 @@ namespace QuantConnect.Brokerages.Bitmex
                 Encoding.UTF8.GetBytes(body.ToQueryString()),
                 ParameterType.RequestBody
             );
-            SignRequest(request, body.ToQueryString());
+            SignRequest(request, endpoint, body.ToQueryString());
 
             var response = ExecuteRestRequest(request);
             if (response.StatusCode == HttpStatusCode.OK)
@@ -336,7 +336,7 @@ namespace QuantConnect.Brokerages.Bitmex
                 Encoding.UTF8.GetBytes(body.ToQueryString()),
                 ParameterType.RequestBody
             );
-            SignRequest(request, body.ToQueryString());
+            SignRequest(request, endpoint, body.ToQueryString());
 
             var response = ExecuteRestRequest(request);
             if (response.StatusCode == HttpStatusCode.OK)
@@ -367,8 +367,9 @@ namespace QuantConnect.Brokerages.Bitmex
             foreach (var id in order.BrokerId)
             {
                 body["orderID"] = id;
-                var request = new RestRequest(GetEndpoint("/order"), Method.DELETE);
-                SignRequest(request, body.ToQueryString());
+                var endpoint = GetEndpoint("/order");
+                var request = new RestRequest(endpoint, Method.DELETE);
+                SignRequest(request, endpoint, body.ToQueryString());
                 request.AddParameter(
                     "application/x-www-form-urlencoded",
                     Encoding.UTF8.GetBytes(body.ToQueryString()),
