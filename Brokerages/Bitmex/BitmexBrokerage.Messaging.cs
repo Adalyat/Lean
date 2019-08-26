@@ -7,6 +7,8 @@ using QuantConnect.Securities;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -151,6 +153,9 @@ namespace QuantConnect.Brokerages.Bitmex
 
         private void OnOrderbook(Messages.OrderBookData orderBookData)
         {
+            Stopwatch stopWatch = new Stopwatch();
+            stopWatch.Start();
+
             if (orderBookData.Action.Equals("partial", StringComparison.OrdinalIgnoreCase))
             {
                 ProcessSnapshot(orderBookData.Data);
@@ -158,6 +163,13 @@ namespace QuantConnect.Brokerages.Bitmex
             else
             {
                 ProcessUpdate(orderBookData.Action, orderBookData.Data);
+            }
+            
+            stopWatch.Stop();
+            TimeSpan ts = stopWatch.Elapsed;
+            if (ts.TotalSeconds > 1)
+            {
+                Log.Trace($"Orderbook update took: {stopWatch.Elapsed.TotalSeconds.ToString(CultureInfo.InvariantCulture)}");
             }
         }
 
