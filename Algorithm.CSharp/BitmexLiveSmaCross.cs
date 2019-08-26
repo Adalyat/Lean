@@ -59,7 +59,7 @@ namespace QuantConnect.Algorithm.CSharp
 
             _fast = SMA(_symbol, 6, Resolution.Second);
             _slow = SMA(_symbol, 20, Resolution.Second);
-
+            SetBenchmark(t => 0);
             //SetWarmup(10000);
 
         }
