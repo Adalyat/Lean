@@ -39,7 +39,7 @@ namespace QuantConnect.ToolBox.BitfinexDownloader
         /// </summary>
         public BitfinexDataDownloader()
         {
-            _brokerage = new BitfinexBrokerage(null, null, null, null, null);
+            _brokerage = new BitfinexBrokerage(null, null, null, null);
             _brokerage.Connect();
         }
 

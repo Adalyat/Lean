@@ -68,10 +68,9 @@ namespace QuantConnect.Brokerages.Bitfinex
         /// <param name="apiKey">api key</param>
         /// <param name="apiSecret">api secret</param>
         /// <param name="algorithm">the algorithm instance is required to retrieve account type</param>
-        /// <param name="priceProvider">The price provider for missing FX conversion rates</param>
         /// <param name="aggregator">consolidate ticks</param>
-        public BitfinexBrokerage(string apiKey, string apiSecret, IAlgorithm algorithm, IPriceProvider priceProvider, IDataAggregator aggregator)
-            : this(new WebSocketClientWrapper(), new RestClient(RestApiUrl), apiKey, apiSecret, algorithm, priceProvider, aggregator)
+        public BitfinexBrokerage(string apiKey, string apiSecret, IAlgorithm algorithm, IDataAggregator aggregator)
+            : this(new WebSocketClientWrapper(), new RestClient(RestApiUrl), apiKey, apiSecret, algorithm, aggregator)
         {
         }
 
@@ -83,9 +82,8 @@ namespace QuantConnect.Brokerages.Bitfinex
         /// <param name="apiKey">api key</param>
         /// <param name="apiSecret">api secret</param>
         /// <param name="algorithm">the algorithm instance is required to retrieve account type</param>
-        /// <param name="priceProvider">The price provider for missing FX conversion rates</param>
         /// <param name="aggregator">consolidate ticks</param>
-        public BitfinexBrokerage(IWebSocket websocket, IRestClient restClient, string apiKey, string apiSecret, IAlgorithm algorithm, IPriceProvider priceProvider, IDataAggregator aggregator)
+        public BitfinexBrokerage(IWebSocket websocket, IRestClient restClient, string apiKey, string apiSecret, IAlgorithm algorithm, IDataAggregator aggregator)
             : base(WebSocketUrl, websocket, restClient, apiKey, apiSecret, "Bitfinex")
         {
             SubscriptionManager = new BitfinexSubscriptionManager(this, WebSocketUrl, _symbolMapper);
