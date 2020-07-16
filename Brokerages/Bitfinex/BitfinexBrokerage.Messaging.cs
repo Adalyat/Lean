@@ -57,9 +57,8 @@ namespace QuantConnect.Brokerages.Bitfinex
         /// <param name="apiKey">api key</param>
         /// <param name="apiSecret">api secret</param>
         /// <param name="algorithm">the algorithm instance is required to retrieve account type</param>
-        /// <param name="priceProvider">The price provider for missing FX conversion rates</param>
-        public BitfinexBrokerage(string wssUrl, string restUrl, string apiKey, string apiSecret, IAlgorithm algorithm, IPriceProvider priceProvider)
-            : this(wssUrl, new WebSocketClientWrapper(), new RestClient(restUrl), apiKey, apiSecret, algorithm, priceProvider)
+        public BitfinexBrokerage(string wssUrl, string restUrl, string apiKey, string apiSecret, IAlgorithm algorithm)
+            : this(wssUrl, new WebSocketClientWrapper(), new RestClient(restUrl), apiKey, apiSecret, algorithm)
         {
         }
 
@@ -72,8 +71,7 @@ namespace QuantConnect.Brokerages.Bitfinex
         /// <param name="apiKey">api key</param>
         /// <param name="apiSecret">api secret</param>
         /// <param name="algorithm">the algorithm instance is required to retrieve account type</param>
-        /// <param name="priceProvider">The price provider for missing FX conversion rates</param>
-        public BitfinexBrokerage(string wssUrl, IWebSocket websocket, IRestClient restClient, string apiKey, string apiSecret, IAlgorithm algorithm, IPriceProvider priceProvider)
+        public BitfinexBrokerage(string wssUrl, IWebSocket websocket, IRestClient restClient, string apiKey, string apiSecret, IAlgorithm algorithm)
             : base(wssUrl, websocket, restClient, apiKey, apiSecret, Market.Bitfinex, "Bitfinex")
         {
             _subscriptionManager = new BitfinexSubscriptionManager(this, wssUrl, _symbolMapper);
