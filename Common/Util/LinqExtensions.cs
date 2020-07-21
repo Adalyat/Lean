@@ -361,5 +361,39 @@ namespace QuantConnect.Util
             V obj;
             return dictionary.TryGetValue(key, out obj) ? obj : defaultValue;
         }
+
+        /// <summary>
+        /// Removes all the elements that match the conditions defined by the specified predicate.
+        /// </summary>
+        /// <typeparam name="T">The item type</typeparam>
+        /// <param name="match">The System.Predicate`1 delegate that defines the conditions of the elements to remove.</param>
+        /// <returns>The number of elements removed from the collection</returns>
+        public static int RemoveAll<T>(this ICollection<T> collection, Func<T, bool> match)
+        {
+            List<T> list = collection as List<T>;
+
+            if (list != null)
+            {
+                return list.RemoveAll(new Predicate<T>(match));
+            }
+            else
+            {
+                int counter = 0;
+
+                List<T> itemsToDelete = collection
+                    .Where(match)
+                    .ToList();
+                
+                foreach (var item in itemsToDelete)
+                {
+                    if (collection.Remove(item))
+                    {
+                        counter++;
+                    }
+                }
+
+                return counter;
+            }
+        }
     }
 }
