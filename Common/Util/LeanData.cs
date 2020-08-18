@@ -422,7 +422,7 @@ namespace QuantConnect.Util
                 case SecurityType.Forex:
                 case SecurityType.Cfd:
                 case SecurityType.Crypto:
-                    return !isHourOrDaily ? Path.Combine(directory, symbol.Value.ToLowerInvariant()) : directory;
+                    return !isHourOrDaily ? Path.Combine(directory, "spy".ToLowerInvariant()) : directory;
 
                 case SecurityType.Option:
                     // options uses the underlying symbol for pathing

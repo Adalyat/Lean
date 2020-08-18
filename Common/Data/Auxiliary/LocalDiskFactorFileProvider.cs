@@ -66,18 +66,19 @@ namespace QuantConnect.Data.Auxiliary
 
             // we first need to resolve the map file to get a permtick, that's how the factor files are stored
             var mapFileResolver = _mapFileProvider.Get(market);
+            var permtick = "SPY";
             if (mapFileResolver == null)
             {
-                return GetFactorFile(symbol, symbol.Value, market);
+                return GetFactorFile(symbol, permtick, market);
             }
 
             var mapFile = mapFileResolver.ResolveMapFile(symbol.ID.Symbol, symbol.ID.Date);
             if (mapFile.IsNullOrEmpty())
             {
-                return GetFactorFile(symbol, symbol.Value, market);
+                return GetFactorFile(symbol, permtick, market);
             }
 
-            return GetFactorFile(symbol, mapFile.Permtick, market);
+            return GetFactorFile(symbol, permtick, market);
         }
 
         /// <summary>
