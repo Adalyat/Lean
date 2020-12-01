@@ -67,7 +67,8 @@ namespace QuantConnect.Optimizer.Parameters
             OptimizationParameter optimizationParameter = null;
             if (token.TryGetValue("values", StringComparison.OrdinalIgnoreCase, out main))
             {
-                throw new InvalidOperationException("OptimizationParameterJsonConverter.ReadJson: values of array type is not supported.");
+                optimizationParameter = new OptimizationArrayParameter(parameterName,
+                    main.ToObject<List<string>>());
             }
             if (token.TryGetValue("min", StringComparison.OrdinalIgnoreCase, out minToken) &&
                 token.TryGetValue("max", StringComparison.OrdinalIgnoreCase, out maxToken))
